@@ -19,7 +19,7 @@ class LinkedInAPIService:
         "limit": 10,
         "location": ["United States", "San Francisco"],
         "position": "Software Engineer",
-        "company_name": "Google",
+        "company_name": ["Google"],
         "company_industry": "Technology",
         "company_headcount": "1-10 employees",
         "skills": "Python",
@@ -180,6 +180,10 @@ class LinkedInAPIService:
         Build request body from filters.
         All filters are optional and can be used independently or combined.
         
+        NOTE: API requires array format for:
+        - location: array
+        - company_name: array
+        
         Args:
             filters: Dictionary with filter parameters from form
         
@@ -196,18 +200,14 @@ class LinkedInAPIService:
             body['limit'] = 50  # Default to 50
         
         # Location - API expects ARRAY format
-        # Can combine country and city/state
         location_list = []
         
         if filters.get('country'):
             location_list.append(filters['country'])
         
         if filters.get('location'):
-            # Add city/state if provided
-            # API will search for people in both locations
             location_list.append(filters['location'])
         
-        # Only add to body if we have at least one location
         if location_list:
             body['location'] = location_list
         
@@ -219,26 +219,23 @@ class LinkedInAPIService:
         if filters.get('title'):
             body['position'] = filters['title']
         
-        # Company -> company_name
+        # Company -> company_name (API requires ARRAY format)
         if filters.get('company'):
-            body['company_name'] = filters['company']
+            body['company_name'] = [filters['company']]
         
         # Industry -> company_industry
         if filters.get('industry'):
             body['company_industry'] = filters['industry']
         
         # Company Size -> company_headcount
-        # Must match API's expected format (e.g., "1-10 employees")
         if filters.get('company_size'):
             body['company_headcount'] = filters['company_size']
         
         # Keywords -> skills
-        # Can be comma-separated list
         if filters.get('keywords'):
             body['skills'] = filters['keywords']
         
         # Seniority Level -> level
-        # Map our internal codes to API's expected format
         if filters.get('seniority_level'):
             seniority_map = {
                 'entry': 'Entry Level',
