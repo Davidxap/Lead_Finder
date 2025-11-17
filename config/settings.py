@@ -103,7 +103,7 @@ LINKEDIN_API_URL = "https://linkedin.programando.io/fetch_lead2"
 LINKEDIN_API_USER_AGENT = "Lead-Finder/1.0"
 
 # Pagination
-LEADS_PER_PAGE = 20
+LEADS_PER_PAGE = 10  
 MAX_PAGES_DISPLAY = 10
 
 # Logging Configuration

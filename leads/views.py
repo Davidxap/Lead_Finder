@@ -72,7 +72,7 @@ def search_leads(request):
             
             # Pagination
             page = request.GET.get('page', 1)
-            per_page = settings.LEADS_PER_PAGE
+            per_page = 10
             
             paginator = Paginator(parsed_leads, per_page)
             
@@ -153,14 +153,12 @@ def add_to_list(request):
 
 
 def view_lists(request):
-    """
-    View all lists with their leads.
-    """
-    lists_data = LeadService.get_all_lists_with_leads()
+    """View all lists with their leads."""
+    lists = LeadList.objects.all().order_by('-created_at')
     
     context = {
-        'lists': lists_data,
-        'total_lists': len(lists_data),
+        'lists': lists,
+        'total_lists': lists.count(),
     }
     
     return render(request, 'leads/lists.html', context)
