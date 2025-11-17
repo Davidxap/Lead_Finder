@@ -6,7 +6,7 @@ from leads.models import LeadList
 class LeadSearchForm(forms.Form):
     """
     Form for searching leads with filters.
-    Mirrors Apollo's filter interface.
+    Compatible with the LinkedIn API structure.
     """
     
     # Basic Filters
@@ -15,16 +15,7 @@ class LeadSearchForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Search by name...',
-        })
-    )
-    
-    company = forms.CharField(
-        max_length=200,
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Company name...',
+            'placeholder': 'e.g., John Smith',
         })
     )
     
@@ -33,36 +24,26 @@ class LeadSearchForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Job title...',
-            'label': 'Job Title'
+            'placeholder': 'e.g., Software Engineer',
+        })
+    )
+    
+    company = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., Google',
         })
     )
     
     # Location Filters
-    COUNTRY_CHOICES = [
-        ('', '-- Select Country --'),
-        ('United States', 'United States'),
-        ('United Kingdom', 'United Kingdom'),
-        ('Canada', 'Canada'),
-        ('Australia', 'Australia'),
-        ('Germany', 'Germany'),
-        ('France', 'France'),
-        ('Spain', 'Spain'),
-        ('Italy', 'Italy'),
-        ('Netherlands', 'Netherlands'),
-        ('Belgium', 'Belgium'),
-        ('Brazil', 'Brazil'),
-        ('Mexico', 'Mexico'),
-        ('India', 'India'),
-        ('China', 'China'),
-        ('Japan', 'Japan'),
-    ]
-    
-    country = forms.ChoiceField(
-        choices=COUNTRY_CHOICES,
+    country = forms.CharField(
+        max_length=200,
         required=False,
-        widget=forms.Select(attrs={
-            'class': 'form-select',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., United States',
         })
     )
     
@@ -71,7 +52,7 @@ class LeadSearchForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'City, State...',
+            'placeholder': 'e.g., San Francisco, CA',
         })
     )
     
@@ -81,13 +62,13 @@ class LeadSearchForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Industry...',
+            'placeholder': 'e.g., Technology',
         })
     )
     
     # Seniority Filter
     SENIORITY_CHOICES = [
-        ('', '-- Select Level --'),
+        ('', '-- All Levels --'),
         ('entry', 'Entry Level'),
         ('mid', 'Mid Level'),
         ('senior', 'Senior'),
@@ -107,17 +88,18 @@ class LeadSearchForm(forms.Form):
         })
     )
     
-    # Company Size Filter
+    # Company Size Filter (matches API format)
     COMPANY_SIZE_CHOICES = [
-        ('', '-- Select Size --'),
-        ('1-10', '1-10 employees'),
-        ('11-50', '11-50 employees'),
-        ('51-200', '51-200 employees'),
-        ('201-500', '201-500 employees'),
-        ('501-1000', '501-1000 employees'),
-        ('1001-5000', '1001-5000 employees'),
-        ('5001-10000', '5001-10000 employees'),
-        ('10001+', '10000+ employees'),
+        ('', '-- All Sizes --'),
+        ('Myself Only', 'Myself Only'),
+        ('1-10 employees', '1-10 employees'),
+        ('11-50 employees', '11-50 employees'),
+        ('51-200 employees', '51-200 employees'),
+        ('201-500 employees', '201-500 employees'),
+        ('501-1000 employees', '501-1000 employees'),
+        ('1001-5000 employees', '1001-5000 employees'),
+        ('5001-10000 employees', '5001-10000 employees'),
+        ('10001+ employees', '10001+ employees'),
     ]
     
     company_size = forms.ChoiceField(
@@ -134,13 +116,13 @@ class LeadSearchForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Keywords (skills, bio, etc.)...',
+            'placeholder': 'e.g., Python, Leadership',
         })
     )
     
     # Results limit
     limit = forms.IntegerField(
-        initial=100,
+        initial=50,
         required=False,
         widget=forms.HiddenInput()
     )

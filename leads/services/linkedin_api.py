@@ -3,69 +3,80 @@ import requests
 import json
 import logging
 from typing import Dict, List, Optional
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 
 class LinkedInAPIService:
-    """
-    Service to interact with LinkedIn API.
-    Handles fetching leads and parsing responses.
-    """
+    """Service to interact with LinkedIn API at linkedin.programando.io"""
     
     def __init__(self):
-        self.api_url = settings.LINKEDIN_API_URL
-        self.user_agent = settings.LINKEDIN_API_USER_AGENT
+        self.api_url = "https://linkedin.programando.io/fetch_lead2"
         self.session = requests.Session()
     
     def fetch_leads(self, filters: Dict) -> Dict:
-        """
-        Fetch leads from LinkedIn API with given filters.
-        
-        Args:
-            filters: Dictionary containing search filters
-                - limit: Number of results to fetch
-                - location: List of locations/countries
-                - company: Company name
-                - title: Job title
-                - industry: Industry name
-                - keywords: Search keywords
-        
-        Returns:
-            Dictionary with 'results' and metadata
-        """
+        """Fetch leads from LinkedIn API with given filters."""
         try:
             # Build request body
             body = self._build_request_body(filters)
             
-            # Build headers
+            # Build headers (IMPORTANTE: Content-Type debe ser application/json)
             headers = {
                 "Content-Type": "application/json",
-                "User-Agent": self.user_agent,
-                "Accept": "*/*",
-                "Accept-Encoding": "gzip, deflate, br",
-                "Connection": "keep-alive"
+                "Accept": "application/json",
+                "User-Agent": "Lead-Finder/1.0"
             }
             
-            logger.info(f"Fetching leads with filters: {filters}")
+            logger.info(f"GET {self.api_url} (with JSON body)")
+            logger.info(f"Body: {json.dumps(body, indent=2)}")
             
-            # Make request
-            req = requests.Request("GET", self.api_url, data=json.dumps(body), headers=headers)
-            prepared = req.prepare()
+            # GET request con JSON body (inusual pero es lo que requiere esta API)
+            response = requests.request(
+                "GET",
+                self.api_url,
+                data=json.dumps(body),
+                headers=headers,
+                timeout=60
+            )
             
-            response = self.session.send(prepared, timeout=30)
+            logger.info(f"Response status: {response.status_code}")
+            
             response.raise_for_status()
             
             # Parse response
             data = response.json()
-            logger.info(f"Fetched {len(data.get('results', []))} leads")
+            results = data.get('results', [])
+            
+            logger.info(f"Successfully fetched {len(results)} leads")
             
             return {
                 'success': True,
-                'results': data.get('results', []),
-                'total': len(data.get('results', [])),
+                'results': results,
+                'total': len(results),
                 'error': None
+            }
+            
+        except requests.exceptions.Timeout:
+            logger.error("API request timeout")
+            return {
+                'success': False,
+                'results': [],
+                'total': 0,
+                'error': "Request timeout. Please try again."
+            }
+            
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"API HTTP error: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+            except:
+                error_detail = e.response.text
+            
+            return {
+                'success': False,
+                'results': [],
+                'total': 0,
+                'error': f"{e.response.status_code} Error: {error_detail}"
             }
             
         except requests.exceptions.RequestException as e:
@@ -74,163 +85,182 @@ class LinkedInAPIService:
                 'success': False,
                 'results': [],
                 'total': 0,
-                'error': f"Failed to fetch leads: {str(e)}"
+                'error': f"Failed to connect: {str(e)}"
             }
-        except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse response: {str(e)}")
             return {
                 'success': False,
                 'results': [],
                 'total': 0,
-                'error': f"An unexpected error occurred: {str(e)}"
+                'error': "Invalid API response"
+            }
+            
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return {
+                'success': False,
+                'results': [],
+                'total': 0,
+                'error': f"Error: {str(e)}"
             }
     
     def _build_request_body(self, filters: Dict) -> Dict:
         """
-        Build request body from filters.
-        
-        Args:
-            filters: Dictionary with filter parameters
-        
-        Returns:
-            Dictionary ready to send to API
+        Build request body.
+        La API espera JSON en el body (aunque sea GET).
         """
         body = {}
         
         # Limit
-        limit = filters.get('limit', 100)
-        body['limit'] = min(int(limit), 1000)  # Max 1000
+        limit = filters.get('limit', 50)
+        try:
+            body['limit'] = min(int(limit), 100)
+        except:
+            body['limit'] = 50
         
-        # Location/Country
-        location = filters.get('location') or filters.get('country')
-        if location:
-            if isinstance(location, list):
-                body['location'] = location
-            else:
-                body['location'] = [location]
+        # Location - Como ARRAY
+        location_list = []
         
-        # Company
-        company = filters.get('company')
-        if company:
-            body['company'] = company
+        if filters.get('country'):
+            location_list.append(filters['country'])
         
-        # Job Title
-        title = filters.get('title') or filters.get('job_title')
-        if title:
-            body['title'] = title
+        if filters.get('location'):
+            location_list.append(filters['location'])
         
-        # Industry
-        industry = filters.get('industry')
-        if industry:
-            body['industry'] = industry
+        if location_list:
+            body['location'] = location_list
         
-        # Keywords
-        keywords = filters.get('keywords')
-        if keywords:
-            body['keywords'] = keywords
+        # Job Title -> position
+        if filters.get('title'):
+            body['position'] = filters['title']
         
+        # Company -> company_name
+        if filters.get('company'):
+            body['company_name'] = filters['company']
+        
+        # Industry -> company_industry
+        if filters.get('industry'):
+            body['company_industry'] = filters['industry']
+        
+        # Company Size -> company_headcount
+        if filters.get('company_size'):
+            body['company_headcount'] = filters['company_size']
+        
+        # Keywords -> skills
+        if filters.get('keywords'):
+            body['skills'] = filters['keywords']
+        
+        # Seniority Level -> level
+        if filters.get('seniority_level'):
+            seniority_map = {
+                'entry': 'Entry Level',
+                'mid': 'Mid Level',
+                'senior': 'Senior',
+                'manager': 'Manager',
+                'director': 'Director',
+                'vp': 'VP',
+                'c_level': 'C-Level',
+                'owner': 'Owner',
+                'partner': 'Partner',
+            }
+            body['level'] = seniority_map.get(
+                filters['seniority_level'], 
+                filters['seniority_level'].title()
+            )
+        
+        # Name
+        if filters.get('name'):
+            body['name'] = filters['name']
+        
+        logger.debug(f"Request body: {json.dumps(body, indent=2)}")
         return body
     
     def parse_lead_data(self, raw_lead: Dict) -> Dict:
-        """
-        Parse raw lead data from API into our format.
-        
-        Args:
-            raw_lead: Raw lead data from API
-        
-        Returns:
-            Parsed lead data ready for database
-        """
-        # Extract name
-        name = raw_lead.get('name', '')
-        name_parts = name.split(' ', 1) if name else ['', '']
-        first_name = name_parts[0] if len(name_parts) > 0 else ''
-        last_name = name_parts[1] if len(name_parts) > 1 else ''
-        
-        # Determine seniority level from title
-        title = raw_lead.get('position', '').lower()
-        seniority = self._determine_seniority(title)
-        
-        return {
-            'external_id': str(raw_lead.get('id', '')),
-            'first_name': first_name,
-            'last_name': last_name,
-            'full_name': name,
-            'email': raw_lead.get('email', ''),
-            'phone': raw_lead.get('phone', ''),
-            'linkedin_url': raw_lead.get('linkedin', ''),
-            'photo_url': None,  # API doesn't provide photos
-            'current_title': raw_lead.get('position', ''),
-            'current_company': raw_lead.get('company_name', ''),
-            'company_linkedin_url': raw_lead.get('company_linkedin', ''),
-            'headline': raw_lead.get('headline', ''),
-            'location': raw_lead.get('location', ''),
-            'country': raw_lead.get('region', ''),  # Using region as country
-            'industry': raw_lead.get('company_industry', ''),
-            'company_size': raw_lead.get('company_headcount', ''),
-            'seniority_level': seniority,
-            'skills': raw_lead.get('skills', ''),
-            'bio': raw_lead.get('headline', ''),  # Using headline as bio
-        }
+        """Parse raw lead data from API into our format."""
+        try:
+            first_name = raw_lead.get('name', '')
+            last_name = raw_lead.get('surname', '')
+            full_name = f"{first_name} {last_name}".strip()
+            
+            linkedin_url = raw_lead.get('linkedin', '')
+            if linkedin_url and not linkedin_url.startswith('http'):
+                linkedin_url = f'https://{linkedin_url}'
+            
+            level = raw_lead.get('level', '')
+            seniority = self._map_seniority(level)
+            
+            return {
+                'external_id': str(raw_lead.get('id', '')),
+                'first_name': first_name,
+                'last_name': last_name,
+                'full_name': full_name,
+                'email': raw_lead.get('email', ''),
+                'phone': raw_lead.get('phone', ''),
+                'linkedin_url': linkedin_url,
+                'photo_url': None,
+                'current_title': raw_lead.get('position', ''),
+                'current_company': raw_lead.get('company_name', ''),
+                'company_linkedin_url': raw_lead.get('company_linkedin', ''),
+                'headline': raw_lead.get('headline', ''),
+                'location': raw_lead.get('location', ''),
+                'country': raw_lead.get('region', ''),
+                'region': raw_lead.get('region', ''),
+                'industry': raw_lead.get('company_industry', ''),
+                'company_size': raw_lead.get('company_headcount', ''),
+                'company_domain': raw_lead.get('company_domain', ''),
+                'company_location': raw_lead.get('company_location', ''),
+                'company_founded': raw_lead.get('company_founded', ''),
+                'company_revenue': raw_lead.get('company_revenue', ''),
+                'company_subindustry': raw_lead.get('company_subindustry', ''),
+                'level': raw_lead.get('level', ''),
+                'department': raw_lead.get('department', ''),
+                'seniority_level': seniority,
+                'skills': raw_lead.get('skills', ''),
+                'bio': raw_lead.get('headline', ''),
+            }
+            
+        except Exception as e:
+            logger.error(f"Error parsing lead: {str(e)}")
+            raise
     
-    def _determine_seniority(self, title: str) -> str:
-        """Determine seniority level from job title"""
-        title_lower = title.lower()
+    def _map_seniority(self, api_level: str) -> str:
+        """Map API seniority to database choices."""
+        if not api_level:
+            return ''
         
-        if any(word in title_lower for word in ['ceo', 'cto', 'cfo', 'coo', 'chief', 'president']):
-            return 'c_level'
-        elif 'vp' in title_lower or 'vice president' in title_lower:
-            return 'vp'
-        elif 'director' in title_lower:
-            return 'director'
-        elif 'manager' in title_lower or 'head of' in title_lower:
-            return 'manager'
-        elif 'senior' in title_lower or 'sr' in title_lower or 'lead' in title_lower:
-            return 'senior'
-        elif 'junior' in title_lower or 'jr' in title_lower or 'associate' in title_lower:
-            return 'entry'
-        elif 'owner' in title_lower or 'founder' in title_lower:
-            return 'owner'
-        elif 'partner' in title_lower:
-            return 'partner'
-        else:
-            return 'mid'
+        level_lower = api_level.lower().strip()
+        
+        mapping = {
+            'entry': 'entry', 'entry level': 'entry', 'junior': 'entry',
+            'mid': 'mid', 'mid level': 'mid', 'intermediate': 'mid',
+            'senior': 'senior', 'sr': 'senior', 'specialist': 'senior',
+            'manager': 'manager', 'mgr': 'manager',
+            'director': 'director', 'dir': 'director',
+            'vp': 'vp', 'vice president': 'vp',
+            'c-level': 'c_level', 'ceo': 'c_level', 'cto': 'c_level',
+            'owner': 'owner', 'founder': 'owner',
+            'partner': 'partner',
+        }
+        
+        return mapping.get(level_lower, '')
     
     def filter_leads_locally(self, leads: List[Dict], filters: Dict) -> List[Dict]:
-        """
-        Apply additional filters to leads locally (client-side filtering).
-        
-        Args:
-            leads: List of lead dictionaries
-            filters: Dictionary with filter criteria
-        
-        Returns:
-            Filtered list of leads
-        """
+        """Apply client-side filters."""
         filtered = leads
         
-        # Filter by name
         name = filters.get('name', '').lower()
         if name:
-            filtered = [
-                lead for lead in filtered 
-                if name in lead.get('name', '').lower()
-            ]
+            filtered = [l for l in filtered if name in f"{l.get('name', '')} {l.get('surname', '')}".lower()]
         
-        # Filter by seniority level
         seniority = filters.get('seniority_level')
         if seniority:
-            filtered = [
-                lead for lead in filtered
-                if self._determine_seniority(lead.get('position', '')) == seniority
-            ]
+            filtered = [l for l in filtered if self._map_seniority(l.get('level', '')) == seniority]
         
-        # Filter by company size
         company_size = filters.get('company_size')
         if company_size:
-            filtered = [
-                lead for lead in filtered
-                if company_size.lower() in lead.get('company_headcount', '').lower()
-            ]
+            filtered = [l for l in filtered if l.get('company_headcount', '') == company_size]
         
+        logger.info(f"Filtered {len(leads)} -> {len(filtered)} leads")
         return filtered

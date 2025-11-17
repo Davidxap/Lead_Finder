@@ -45,8 +45,8 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # Global templates
-        'APP_DIRS': True,  # Look for templates in each app
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -94,9 +94,17 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ============================================
+# LEAD FINDER SPECIFIC SETTINGS
+# ============================================
+
 # LinkedIn API Configuration
-LINKEDIN_API_URL = os.getenv('LINKEDIN_API_URL', 'https://linkedin.programando.io/fetch_lead2')
-LINKEDIN_API_USER_AGENT = os.getenv('LINKEDIN_API_USER_AGENT', 'PostmanRuntime/7.49.1')
+LINKEDIN_API_URL = "https://linkedin.programando.io/fetch_lead2"
+LINKEDIN_API_USER_AGENT = "Lead-Finder/1.0"
+
+# Pagination
+LEADS_PER_PAGE = 20
+MAX_PAGES_DISPLAY = 10
 
 # Logging Configuration
 LOGGING = {
@@ -104,29 +112,41 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '[{levelname}] {asctime} {module} - {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{levelname}] {message}',
             'style': '{',
         },
     },
     'handlers': {
         'console': {
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'lead_finder.log',
             'formatter': 'verbose',
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
     'loggers': {
         'leads': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
         },
     },
 }
 
-# Pagination
-LEADS_PER_PAGE = 25
-MAX_PAGES_DISPLAY = 10
+# Create logs directory if it doesn't exist
+LOGS_DIR = BASE_DIR / 'logs'
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)

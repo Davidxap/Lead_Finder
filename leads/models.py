@@ -2,7 +2,7 @@
 from django.db import models
 from django.core.validators import URLValidator
 from django.utils.text import slugify
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Dict, Any
 
 if TYPE_CHECKING:
     from django.db.models.manager import RelatedManager
@@ -14,32 +14,43 @@ class Lead(models.Model):
     Each lead represents a person with professional information.
     """
     
-    # Basic Information
-    first_name = models.CharField(max_length=100, db_index=True)
-    last_name = models.CharField(max_length=100, db_index=True)
+    # Explicit ID for type checkers
+    id = models.AutoField(primary_key=True)
+    
+    # Basic Information (mapped from API: name, surname)
+    first_name = models.CharField(max_length=100, db_index=True, blank=True)
+    last_name = models.CharField(max_length=100, db_index=True, blank=True)
     full_name = models.CharField(max_length=200, blank=True)
     
     # Contact Information
     email = models.EmailField(max_length=255, blank=True, null=True)
     phone = models.CharField(max_length=50, blank=True, null=True)
     
-    # LinkedIn Information
+    # LinkedIn Information (mapped from API: linkedin)
     linkedin_url = models.URLField(max_length=500, blank=True, validators=[URLValidator()])
     photo_url = models.URLField(max_length=500, blank=True, null=True)
     
-    # Professional Information
-    current_title = models.CharField(max_length=255, db_index=True)
-    current_company = models.CharField(max_length=255, db_index=True)
+    # Professional Information (mapped from API: position, headline, level, department)
+    current_title = models.CharField(max_length=255, db_index=True, blank=True)
+    current_company = models.CharField(max_length=255, db_index=True, blank=True)
     company_linkedin_url = models.URLField(max_length=500, blank=True)
     headline = models.TextField(blank=True)
+    level = models.CharField(max_length=100, blank=True)  # API: level
+    department = models.CharField(max_length=100, blank=True)  # API: department
     
-    # Location
-    location = models.CharField(max_length=255, db_index=True)
-    country = models.CharField(max_length=100, db_index=True)
+    # Location (mapped from API: location, region)
+    location = models.CharField(max_length=255, db_index=True, blank=True)
+    country = models.CharField(max_length=100, db_index=True, blank=True)
+    region = models.CharField(max_length=100, blank=True)  # API: region
     
-    # Company Information
-    industry = models.CharField(max_length=255, db_index=True, blank=True)
-    company_size = models.CharField(max_length=100, blank=True)
+    # Company Information (mapped from API: company_*)
+    industry = models.CharField(max_length=255, db_index=True, blank=True)  # API: company_industry
+    company_size = models.CharField(max_length=100, blank=True)  # API: company_headcount
+    company_domain = models.CharField(max_length=255, blank=True)  # API: company_domain
+    company_location = models.CharField(max_length=255, blank=True)  # API: company_location
+    company_founded = models.CharField(max_length=50, blank=True)  # API: company_founded
+    company_revenue = models.CharField(max_length=100, blank=True)  # API: company_revenue
+    company_subindustry = models.TextField(blank=True)  # API: company_subindustry
     
     # Seniority
     SENIORITY_CHOICES = [
@@ -52,6 +63,7 @@ class Lead(models.Model):
         ('c_level', 'C-Level'),
         ('owner', 'Owner'),
         ('partner', 'Partner'),
+        ('specialist', 'Specialist'),  # Added from API
     ]
     seniority_level = models.CharField(
         max_length=20, 
@@ -60,16 +72,17 @@ class Lead(models.Model):
         db_index=True
     )
     
-    # Additional Information
+    # Additional Information (mapped from API: skills)
     skills = models.TextField(blank=True, help_text="Comma-separated skills")
     bio = models.TextField(blank=True)
     
-    # External Reference
+    # External Reference (mapped from API: id)
     external_id = models.CharField(
         max_length=255, 
         unique=True, 
         db_index=True,
-        help_text="Unique identifier from LinkedIn API"
+        help_text="Unique identifier from LinkedIn API",
+        null=True  # Allow null for leads created manually
     )
     
     # Metadata
@@ -88,6 +101,7 @@ class Lead(models.Model):
             models.Index(fields=['country', 'location']),
             models.Index(fields=['industry']),
             models.Index(fields=['seniority_level']),
+            models.Index(fields=['external_id']),
         ]
         verbose_name = 'Lead'
         verbose_name_plural = 'Leads'
@@ -118,6 +132,96 @@ class Lead(models.Model):
     def has_phone(self) -> bool:
         """Check if lead has phone"""
         return bool(self.phone)
+    
+    @classmethod
+    def from_api_data(cls, data: Dict[str, Any]) -> 'Lead':
+        """
+        Create a Lead instance from API response data.
+        
+        API structure:
+        {
+            "id": 2566,
+            "name": "Fred",
+            "surname": "Fred",
+            "linkedin": "linkedin.com/in/fred-fred-ab886026",
+            "location": "United States",
+            "region": "Northern America",
+            "position": "A Good One",
+            "headline": "a good one at Topco",
+            "level": "Specialist",
+            "department": "",
+            "skills": "",
+            "company_name": "Top 000",
+            "company_domain": "0.be",
+            "company_linkedin": "https://www.linkedin.com/company/topco",
+            "company_location": "Belgium",
+            "company_industry": "Construction",
+            "company_subindustry": "...",
+            "company_headcount": "1-10 employees",
+            "company_founded": "",
+            "company_revenue": "Not Known"
+        }
+        """
+        # Normalize LinkedIn URL
+        linkedin_url = data.get('linkedin', '')
+        if linkedin_url and not linkedin_url.startswith('http'):
+            linkedin_url = f'https://{linkedin_url}'
+        
+        # Normalize company LinkedIn URL
+        company_linkedin = data.get('company_linkedin', '')
+        
+        # Map seniority level
+        level = data.get('level', '').lower()
+        seniority_mapping = {
+            'specialist': 'specialist',
+            'entry': 'entry',
+            'mid': 'mid',
+            'senior': 'senior',
+            'manager': 'manager',
+            'director': 'director',
+            'vp': 'vp',
+            'c-level': 'c_level',
+            'owner': 'owner',
+            'partner': 'partner',
+        }
+        seniority = seniority_mapping.get(level, '')
+        
+        return cls(
+            # Basic info
+            first_name=data.get('name', ''),
+            last_name=data.get('surname', ''),
+            
+            # LinkedIn
+            linkedin_url=linkedin_url,
+            
+            # Professional info
+            current_title=data.get('position', ''),
+            current_company=data.get('company_name', ''),
+            headline=data.get('headline', ''),
+            level=data.get('level', ''),
+            department=data.get('department', ''),
+            
+            # Location
+            location=data.get('location', ''),
+            region=data.get('region', ''),
+            
+            # Company info
+            company_linkedin_url=company_linkedin,
+            industry=data.get('company_industry', ''),
+            company_size=data.get('company_headcount', ''),
+            company_domain=data.get('company_domain', ''),
+            company_location=data.get('company_location', ''),
+            company_founded=data.get('company_founded', ''),
+            company_revenue=data.get('company_revenue', ''),
+            company_subindustry=data.get('company_subindustry', ''),
+            
+            # Additional
+            seniority_level=seniority,
+            skills=data.get('skills', ''),
+            
+            # External reference
+            external_id=str(data.get('id', ''))
+        )
 
 
 class LeadList(models.Model):
@@ -125,6 +229,9 @@ class LeadList(models.Model):
     Model to store custom lists created by users.
     Users can organize leads into different lists.
     """
+    
+    # Explicit ID for type checkers
+    id = models.AutoField(primary_key=True)
     
     name = models.CharField(
         max_length=255, 
@@ -171,6 +278,9 @@ class LeadListItem(models.Model):
     Model to store the many-to-many relationship between Leads and Lists.
     This allows tracking when a lead was added to a list.
     """
+    
+    # Explicit ID for type checkers
+    id = models.AutoField(primary_key=True)
     
     lead = models.ForeignKey(
         Lead, 
