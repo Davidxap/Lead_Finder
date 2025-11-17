@@ -1,0 +1,355 @@
+{% extends 'leads/base.html' %}
+
+{% block title %}Search Leads - Lead Finder{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Sidebar with Filters -->
+    <aside class="sidebar">
+        <h5><i class="fas fa-filter"></i> Search Filters</h5>
+        
+        <form method="GET" action="{% url 'leads:search' %}" id="searchForm">
+            {% csrf_token %}
+            
+            <div class="filter-group">
+                <label class="filter-label" for="{{ form.name.id_for_label }}">Name</label>
+                {{ form.name }}
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="{{ form.title.id_for_label }}">Job Title</label>
+                {{ form.title }}
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="{{ form.company.id_for_label }}">Company</label>
+                {{ form.company }}
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="{{ form.country.id_for_label }}">Country</label>
+                {{ form.country }}
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="{{ form.location.id_for_label }}">Location</label>
+                {{ form.location }}
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="{{ form.industry.id_for_label }}">Industry</label>
+                {{ form.industry }}
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="{{ form.seniority_level.id_for_label }}">Seniority Level</label>
+                {{ form.seniority_level }}
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="{{ form.company_size.id_for_label }}">Company Size</label>
+                {{ form.company_size }}
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="{{ form.keywords.id_for_label }}">Keywords</label>
+                {{ form.keywords }}
+                <small class="text-muted d-block mt-1">Skills, bio, etc.</small>
+            </div>
+            
+            {{ form.limit }}
+            
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Search
+                </button>
+                <a href="{% url 'leads:search' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Clear Filters
+                </a>
+            </div>
+        </form>
+    </aside>
+    
+    <!-- Results Area -->
+    <main class="content-area">
+        {% if error %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> {{ error }}
+        </div>
+        {% endif %}
+        
+        {% if has_searched %}
+            <!-- Stats Card -->
+            <div class="stats-card">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="stats-number">{{ total_results }}</div>
+                        <div class="stats-label">Leads found</div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        {% if page_obj %}
+                        <span class="badge bg-primary">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if leads %}
+            <!-- Results Table -->
+            <div class="results-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Job Title</th>
+                            <th>Company</th>
+                            <th>Location</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>LinkedIn</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lead in leads %}
+                        <tr>
+                            <td>
+                                <strong>{{ lead.full_name }}</strong>
+                                {% if lead.seniority_level %}
+                                <br><span class="badge bg-info">{{ lead.seniority_level|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ lead.current_title }}</td>
+                            <td>
+                                {{ lead.current_company }}
+                                {% if lead.company_size %}
+                                <br><small class="text-muted">{{ lead.company_size }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ lead.location }}
+                                {% if lead.country %}
+                                <br><small class="text-muted">{{ lead.country }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lead.email %}
+                                <a href="mailto:{{ lead.email }}" class="email-link">
+                                    <i class="fas fa-envelope"></i> {{ lead.email }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lead.phone %}
+                                <span class="text-nowrap">
+                                    <i class="fas fa-phone"></i> {{ lead.phone }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lead.linkedin_url %}
+                                <a href="https://{{ lead.linkedin_url }}" target="_blank" class="linkedin-link">
+                                    <i class="fab fa-linkedin"></i> View Profile
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-success" 
+                                        onclick="openAddToListModal({{ lead|safe|escapejs }})">
+                                    <i class="fas fa-plus"></i> Add to List
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav>
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num <= 10 %}
+                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <i class="fas fa-search"></i>
+                <h4>No leads found</h4>
+                <p>Try adjusting your filters or search criteria.</p>
+            </div>
+            {% endif %}
+        {% else %}
+            <!-- Initial State -->
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h4>Start Your Search</h4>
+                <p>Use the filters on the left to find leads.</p>
+            </div>
+        {% endif %}
+    </main>
+</div>
+
+<!-- Add to List Modal -->
+<div class="modal fade" id="addToListModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle"></i> Add to List
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'leads:add_to_list' %}" id="addToListForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p id="leadInfo" class="mb-3"></p>
+                    
+                    <!-- Hidden fields for lead data -->
+                    <input type="hidden" name="external_id" id="external_id">
+                    <input type="hidden" name="first_name" id="first_name">
+                    <input type="hidden" name="last_name" id="last_name">
+                    <input type="hidden" name="full_name" id="full_name">
+                    <input type="hidden" name="email" id="email">
+                    <input type="hidden" name="phone" id="phone">
+                    <input type="hidden" name="linkedin_url" id="linkedin_url">
+                    <input type="hidden" name="current_title" id="current_title">
+                    <input type="hidden" name="current_company" id="current_company">
+                    <input type="hidden" name="company_linkedin_url" id="company_linkedin_url">
+                    <input type="hidden" name="headline" id="headline">
+                    <input type="hidden" name="location" id="location">
+                    <input type="hidden" name="country" id="country">
+                    <input type="hidden" name="industry" id="industry">
+                    <input type="hidden" name="company_size" id="company_size">
+                    <input type="hidden" name="seniority_level" id="seniority_level">
+                    <input type="hidden" name="skills" id="skills">
+                    <input type="hidden" name="bio" id="bio">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Select List</label>
+                        <select class="form-select" name="list_name" id="listSelect" required>
+                            <option value="">-- Choose a list --</option>
+                            {% for list in all_lists %}
+                            <option value="{{ list.name }}">{{ list.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Or Create New List</label>
+                        <input type="text" class="form-control" id="newListInput" placeholder="Enter new list name">
+                        <small class="text-muted">Leave blank to use selected list above</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> Add to List
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let addToListModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    addToListModal = new bootstrap.Modal(document.getElementById('addToListModal'));
+    
+    // Handle new list input
+    document.getElementById('newListInput').addEventListener('input', function() {
+        const listSelect = document.getElementById('listSelect');
+        if (this.value.trim()) {
+            listSelect.value = '';
+            listSelect.disabled = true;
+        } else {
+            listSelect.disabled = false;
+        }
+    });
+    
+    // Handle form submission
+    document.getElementById('addToListForm').addEventListener('submit', function(e) {
+        const newListInput = document.getElementById('newListInput');
+        const listSelect = document.getElementById('listSelect');
+        
+        if (newListInput.value.trim()) {
+            listSelect.value = newListInput.value.trim();
+            listSelect.disabled = false;
+        }
+    });
+});
+
+function openAddToListModal(lead) {
+    // Populate lead info
+    document.getElementById('leadInfo').textContent = 
+        `Adding: ${lead.full_name} - ${lead.current_company}`;
+    
+    // Populate hidden fields
+    document.getElementById('external_id').value = lead.external_id || '';
+    document.getElementById('first_name').value = lead.first_name || '';
+    document.getElementById('last_name').value = lead.last_name || '';
+    document.getElementById('full_name').value = lead.full_name || '';
+    document.getElementById('email').value = lead.email || '';
+    document.getElementById('phone').value = lead.phone || '';
+    document.getElementById('linkedin_url').value = lead.linkedin_url || '';
+    document.getElementById('current_title').value = lead.current_title || '';
+    document.getElementById('current_company').value = lead.current_company || '';
+    document.getElementById('company_linkedin_url').value = lead.company_linkedin_url || '';
+    document.getElementById('headline').value = lead.headline || '';
+    document.getElementById('location').value = lead.location || '';
+    document.getElementById('country').value = lead.country || '';
+    document.getElementById('industry').value = lead.industry || '';
+    document.getElementById('company_size').value = lead.company_size || '';
+    document.getElementById('seniority_level').value = lead.seniority_level || '';
+    document.getElementById('skills').value = lead.skills || '';
+    document.getElementById('bio').value = lead.bio || '';
+    
+    // Reset form
+    document.getElementById('listSelect').value = '';
+    document.getElementById('newListInput').value = '';
+    document.getElementById('listSelect').disabled = false;
+    
+    // Show modal
+    addToListModal.show();
+}
+</script>
+{% endblock %}
