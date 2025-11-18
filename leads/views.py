@@ -45,6 +45,14 @@ def search_leads(request):
         api_response = api_service.fetch_leads(filters)
         
         if api_response['success']:
+            # Show warning if using mock data
+            if api_response.get('is_mock'):
+                messages.warning(
+                    request,
+                    'Demo Mode: Using sample data because LinkedIn API is currently unavailable. '
+                    'All results are for testing purposes only.'
+                )
+            
             raw_leads = api_response['results']
             
             # Parse leads
