@@ -144,29 +144,17 @@ class LeadSearchForm(forms.Form):
         })
     )
     
-    # Results limit (now visible as dropdown)
-    LIMIT_CHOICES = [
-        (50, '50 results'),
-        (100, '100 results'),
-        (250, '250 results'),
-        (500, '500 results (recommended)'),
-        (1000, '1000 results (max)'),
-    ]
-    
-    limit = forms.ChoiceField(
-        choices=LIMIT_CHOICES,
+    # Results limit
+    limit = forms.IntegerField(
+        initial=50,
         required=False,
-        initial=500,
-        label='Number of Results',
-        widget=forms.Select(attrs={
-            'class': 'form-select',
-        })
+        widget=forms.HiddenInput()
     )
     
     def get_filters_dict(self):
         """
         Return cleaned data as a dictionary for API consumption.
-        Removes empty values and converts limit to integer.
+        Removes empty values.
         """
         if not self.is_valid():
             return {}
@@ -174,18 +162,7 @@ class LeadSearchForm(forms.Form):
         filters = {}
         for field, value in self.cleaned_data.items():
             if value:  # Only include non-empty values
-                # Convert limit to integer
-                if field == 'limit':
-                    try:
-                        filters[field] = int(value)
-                    except (ValueError, TypeError):
-                        filters[field] = 500  # Default fallback
-                else:
-                    filters[field] = value
-        
-        # Ensure limit exists even if not set
-        if 'limit' not in filters:
-            filters['limit'] = 500
+                filters[field] = value
         
         return filters
 

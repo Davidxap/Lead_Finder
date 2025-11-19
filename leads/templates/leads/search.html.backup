@@ -41,7 +41,7 @@
                             <label class="form-label fw-bold">Country/Location</label>
                             {{ form.location }}
                             <small class="text-muted d-block mt-1">
-                                Try: Spain, Italy, France, Belgium
+                                Examples: United States, Canada, United Kingdom
                             </small>
                         </div>
                         
@@ -50,7 +50,7 @@
                             <label class="form-label fw-bold">Geographical Region</label>
                             {{ form.region }}
                             <small class="text-muted d-block mt-1">
-                                Try: Europe, Southern Europe, Western Europe
+                                Examples: Northern America, Europe, Asia
                             </small>
                         </div>
                         
@@ -84,16 +84,7 @@
                             </small>
                         </div>
                         
-                        <!-- Number of Results Selector -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-list-ol"></i> Results Limit
-                            </label>
-                            {{ form.limit }}
-                            <small class="text-muted d-block mt-1">
-                                More results = slower search
-                            </small>
-                        </div>
+                        {{ form.limit }}
                         
                         <!-- Action Buttons -->
                         <div class="d-grid gap-2">
@@ -119,19 +110,17 @@
             {% endif %}
             
             {% if has_searched %}
-                <!-- Stats Card (FIXED - Subtle colors) -->
+                <!-- Stats Card -->
                 <div class="card shadow-sm mb-3">
                     <div class="card-body">
                         <div class="row align-items-center">
                             <div class="col-md-6">
-                                <h3 class="mb-0 text-primary">
-                                    <i class="fas fa-users"></i> {{ total_results }}
-                                </h3>
+                                <h3 class="mb-0 text-primary">{{ total_results }}</h3>
                                 <small class="text-muted">Lead(s) found</small>
                             </div>
                             <div class="col-md-6 text-end">
                                 {% if page_obj %}
-                                <span class="badge bg-secondary bg-opacity-25 text-dark border">
+                                <span class="badge bg-primary fs-6">
                                     Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
                                 </span>
                                 {% endif %}
@@ -180,7 +169,7 @@
                                         </td>
                                         <td>
                                             {{ lead.location|default:"-" }}
-                                            {% if lead.country and lead.country != lead.location %}
+                                            {% if lead.country %}
                                             <br><small class="text-muted">{{ lead.country }}</small>
                                             {% endif %}
                                         </td>
@@ -299,14 +288,14 @@
                 <div class="text-center py-5">
                     <i class="fas fa-search fa-5x text-muted mb-4"></i>
                     <h3 class="text-muted">Start Your Lead Search</h3>
-                    <p class="text-muted">Use the filters on the left to discover potential leads.</p>
+                    <p class="text-muted">Use the filters on the left to discover potential leads for your business.</p>
                 </div>
             {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Add to List Modal (unchanged) -->
+<!-- Add to List Modal -->
 <div class="modal fade" id="addToListModal" tabindex="-1" aria-labelledby="addToListModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -319,11 +308,13 @@
             <form method="POST" action="{% url 'leads:add_to_list' %}" id="addToListForm">
                 {% csrf_token %}
                 <div class="modal-body">
+                    <!-- Lead Info Display -->
                     <div id="leadInfoDisplay" class="alert alert-info mb-3">
                         <strong id="leadNameDisplay"></strong><br>
                         <small id="leadTitleDisplay" class="text-muted"></small>
                     </div>
                     
+                    <!-- Hidden Fields for Lead Data -->
                     <input type="hidden" name="external_id" id="modal_external_id">
                     <input type="hidden" name="first_name" id="modal_first_name">
                     <input type="hidden" name="last_name" id="modal_last_name">
@@ -351,6 +342,7 @@
                     <input type="hidden" name="skills" id="modal_skills">
                     <input type="hidden" name="bio" id="modal_bio">
                     
+                    <!-- List Selection -->
                     <div class="mb-3">
                         <label for="listSelect" class="form-label fw-bold">
                             <i class="fas fa-list"></i> Select Existing List
@@ -363,6 +355,7 @@
                         </select>
                     </div>
                     
+                    <!-- Create New List Option -->
                     <div class="mb-3">
                         <label for="newListInput" class="form-label fw-bold">
                             <i class="fas fa-plus"></i> Or Create New List
@@ -374,6 +367,7 @@
                         <small class="form-text text-muted">Leave blank to use selected list above</small>
                     </div>
                     
+                    <!-- Notes -->
                     <div class="mb-3">
                         <label for="notesTextarea" class="form-label fw-bold">
                             <i class="fas fa-sticky-note"></i> Notes (Optional)
@@ -402,10 +396,12 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize modal
     const addToListModal = new bootstrap.Modal(document.getElementById('addToListModal'));
     const newListInput = document.getElementById('newListInput');
     const listSelect = document.getElementById('listSelect');
     
+    // Handle new list input toggle
     newListInput.addEventListener('input', function() {
         if (this.value.trim()) {
             listSelect.disabled = true;
@@ -414,10 +410,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Handle form submission
     document.getElementById('addToListForm').addEventListener('submit', function(e) {
         const newListValue = newListInput.value.trim();
         const listSelectValue = listSelect.value;
         
+        // Create hidden input for final list_name
         let listNameInput = document.getElementById('final_list_name');
         if (!listNameInput) {
             listNameInput = document.createElement('input');
@@ -427,6 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.appendChild(listNameInput);
         }
         
+        // Set the value
         if (newListValue) {
             listNameInput.value = newListValue;
         } else if (listSelectValue) {
@@ -436,8 +435,12 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Please select a list or create a new one.');
             return false;
         }
+        
+        console.log('Submitting - list_name:', listNameInput.value);
+        console.log('Submitting - external_id:', document.getElementById('modal_external_id').value);
     });
     
+    // Handle Add to List buttons
     document.querySelectorAll('.add-to-list-btn').forEach(button => {
         button.addEventListener('click', function() {
             const leadData = {
@@ -475,10 +478,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function populateModal(leadData) {
+        // Display lead info
         document.getElementById('leadNameDisplay').textContent = leadData.full_name || 'Unknown';
         document.getElementById('leadTitleDisplay').textContent = 
             `${leadData.current_title || 'N/A'} at ${leadData.current_company || 'N/A'}`;
         
+        // Populate ALL hidden fields
         document.getElementById('modal_external_id').value = leadData.external_id;
         document.getElementById('modal_first_name').value = leadData.first_name;
         document.getElementById('modal_last_name').value = leadData.last_name;
@@ -506,11 +511,13 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal_skills').value = leadData.skills;
         document.getElementById('modal_bio').value = leadData.bio;
         
+        // Reset form fields
         listSelect.value = '';
         newListInput.value = '';
         document.getElementById('notesTextarea').value = '';
         listSelect.disabled = false;
         
+        // Remove previous final_list_name if exists
         const oldFinalInput = document.getElementById('final_list_name');
         if (oldFinalInput) {
             oldFinalInput.remove();

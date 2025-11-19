@@ -68,15 +68,15 @@ class Lead(models.Model):
         ('entry', 'Entry Level'),
         ('mid', 'Mid Level'),
         ('senior', 'Senior'),
-        ('specialist', 'Specialist'),
+        ('specialist', 'Specialist'),  # Found in API data
         ('manager', 'Manager'),
         ('director', 'Director'),
-        ('head', 'Head'),
+        ('head', 'Head'),  # Found in API data
         ('vp', 'VP'),
         ('c_level', 'C-Level'),
         ('owner', 'Owner'),
         ('partner', 'Partner'),
-        ('intern', 'Intern'),
+        ('intern', 'Intern'),  # Found in API data
     ]
     seniority_level = models.CharField(
         max_length=20, 
@@ -95,7 +95,7 @@ class Lead(models.Model):
         unique=True, 
         db_index=True,
         help_text="Unique identifier from LinkedIn API",
-        null=True
+        null=True  # Allow null for leads created manually
     )
     
     # Metadata
@@ -146,23 +146,6 @@ class Lead(models.Model):
         """Check if lead has phone"""
         return bool(self.phone)
     
-    def get_seniority_display(self) -> str:
-        """Get human-readable seniority level"""
-        if not self.seniority_level:
-            return ''
-        for code, display in self.SENIORITY_CHOICES:
-            if code == self.seniority_level:
-                return display
-        return self.seniority_level.title()
-    
-    def get_linkedin_url_normalized(self) -> str:
-        """Get normalized LinkedIn URL with https://"""
-        if not self.linkedin_url:
-            return ''
-        if self.linkedin_url.startswith('http'):
-            return self.linkedin_url
-        return f'https://{self.linkedin_url}'
-    
     @classmethod
     def from_api_data(cls, data: Dict[str, Any]) -> 'Lead':
         """
@@ -174,8 +157,8 @@ class Lead(models.Model):
             "name": "Fred",
             "surname": "Fred",
             "linkedin": "linkedin.com/in/fred-fred-ab886026",
-            "location": "United States",
-            "region": "Northern America",
+            "location": "United States",              # Country name
+            "region": "Northern America",             # Geographical region
             "position": "A Good One",
             "headline": "a good one at Topco",
             "level": "Specialist",
@@ -236,10 +219,10 @@ class Lead(models.Model):
             level=data.get('level', ''),
             department=data.get('department', ''),
             
-            # Location mapping
-            location=data.get('location', ''),
-            country=data.get('region', ''),
-            region=data.get('region', ''),
+            # Location mapping (corrected based on real API structure)
+            location=data.get('location', ''),      # Country name from API
+            country=data.get('region', ''),         # Geographical region from API
+            region=data.get('region', ''),          # Keep consistency
             
             # Company info
             company_linkedin_url=company_linkedin,
@@ -247,14 +230,13 @@ class Lead(models.Model):
             company_size=data.get('company_headcount', ''),
             company_domain=data.get('company_domain', ''),
             company_location=data.get('company_location', ''),
-            company_founded=str(data.get('company_founded', '')),
+            company_founded=data.get('company_founded', ''),
             company_revenue=data.get('company_revenue', ''),
             company_subindustry=data.get('company_subindustry', ''),
             
             # Additional
             seniority_level=seniority,
             skills=data.get('skills', ''),
-            bio=data.get('headline', ''),
             
             # External reference
             external_id=str(data.get('id', ''))
@@ -267,6 +249,7 @@ class LeadList(models.Model):
     Users can organize leads into different lists.
     """
     
+    # Explicit ID for type checkers
     id = models.AutoField(primary_key=True)
     
     name = models.CharField(
@@ -278,6 +261,7 @@ class LeadList(models.Model):
     description = models.TextField(blank=True)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     
+    # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -314,6 +298,7 @@ class LeadListItem(models.Model):
     This allows tracking when a lead was added to a list.
     """
     
+    # Explicit ID for type checkers
     id = models.AutoField(primary_key=True)
     
     lead = models.ForeignKey(
@@ -331,7 +316,7 @@ class LeadListItem(models.Model):
     
     class Meta:
         db_table = 'lead_list_items'
-        unique_together = ('lead', 'lead_list')
+        unique_together = ('lead', 'lead_list')  # Prevent duplicates
         ordering = ['-added_at']
         verbose_name = 'Lead List Item'
         verbose_name_plural = 'Lead List Items'

@@ -16,7 +16,6 @@ class LinkedInAPIService:
     - Multiple filters cause 500 errors
     - Location/region filters don't work on API side
     - All other filters must be applied client-side
-    - Default limit is 50, but we can increase it to 1000
     
     API Data Structure:
     {
@@ -44,9 +43,6 @@ class LinkedInAPIService:
         """
         Fetch leads from LinkedIn API with automatic fallback.
         
-        Can fetch up to 1000 leads per request.
-        If more are needed, makes multiple requests.
-        
         Args:
             filters: Dictionary containing search filters
         
@@ -54,13 +50,7 @@ class LinkedInAPIService:
             Dictionary with 'success', 'results', 'total', 'error', and 'is_mock' keys
         """
         try:
-            # Get requested limit (default 500, max 1000)
-            requested_limit = int(filters.get('limit', 500))
-            requested_limit = min(requested_limit, 1000)  # Cap at 1000
-            
-            # Build request body
             body = self._build_request_body(filters)
-            body['limit'] = requested_limit
             
             headers = {
                 "Content-Type": "application/json",
@@ -69,13 +59,12 @@ class LinkedInAPIService:
             
             logger.info(f"Attempting API call: {self.api_url}")
             logger.info(f"Request body: {json.dumps(body, indent=2)}")
-            logger.info(f"Requesting {requested_limit} leads")
             
             response = requests.get(
                 self.api_url,
                 data=json.dumps(body),
                 headers=headers,
-                timeout=30  # Increased timeout for larger requests
+                timeout=10  # Short timeout - if API is down, fail fast
             )
             
             logger.info(f"API response status: {response.status_code}")
@@ -87,8 +76,6 @@ class LinkedInAPIService:
             
             data = response.json()
             results = data.get('results', [])
-            
-            logger.info(f"API returned {len(results)} leads")
             
             # Apply local filters since API doesn't support multiple filters
             if filters:
@@ -125,9 +112,7 @@ class LinkedInAPIService:
         try:
             from .mock_linkedin_data import MockLinkedInData
             
-            limit = int(filters.get('limit', 500))
-            limit = min(limit, 1000)  # Cap at 1000
-            
+            limit = filters.get('limit', 50)
             logger.info(f"Generating {limit} mock leads")
             
             mock_leads = MockLinkedInData.generate_leads(count=limit, filters=filters)
@@ -166,8 +151,12 @@ class LinkedInAPIService:
         """
         body = {}
         
-        # Always include limit (will be set by caller)
-        # Default handled in fetch_leads()
+        # Always include limit
+        limit = filters.get('limit', 50)
+        try:
+            body['limit'] = min(int(limit), 1000)
+        except (ValueError, TypeError):
+            body['limit'] = 50
         
         # PRIORITY 1: Position/Title (best performance)
         if filters.get('title'):
@@ -209,7 +198,7 @@ class LinkedInAPIService:
         # They either don't work or cause timeouts/errors
         # They will be filtered client-side
         
-        logger.debug("No API filters applied - fetching all results, will filter client-side")
+        logger.debug("No API filters applied - all filtering will be client-side")
         return body
     
     def parse_lead_data(self, raw_lead: Dict) -> Dict:
@@ -373,12 +362,6 @@ class LinkedInAPIService:
         - keywords: searches in skills, headline, and position
         """
         if not filters:
-            # DEBUG: Log unique countries when no filters applied
-            if leads:
-                unique_locations = set(lead.get('location', 'Unknown') for lead in leads)
-                unique_regions = set(lead.get('region', 'Unknown') for lead in leads)
-                logger.info(f"DEBUG: Unique locations in API response: {unique_locations}")
-                logger.info(f"DEBUG: Unique regions in API response: {unique_regions}")
             return leads
         
         filtered = leads
@@ -403,36 +386,22 @@ class LinkedInAPIService:
             logger.debug(f"Company filter '{company}': {len(leads)} -> {len(filtered)} leads")
         
         # Filter by location (API "location" field contains country names)
-        # CASE INSENSITIVE search
-        location = filters.get('location', '').lower().strip()
+        location = filters.get('location', '').lower()
         if location:
-            before_count = len(filtered)
             filtered = [
                 lead for lead in filtered 
                 if location in lead.get('location', '').lower()
             ]
-            logger.debug(f"Location filter '{location}': {before_count} -> {len(filtered)} leads")
-            
-            # DEBUG: Show sample of what was filtered
-            if len(filtered) == 0 and before_count > 0:
-                sample_locations = list(set(lead.get('location', 'N/A') for lead in leads[:10]))
-                logger.warning(f"Location filter '{location}' found 0 results. Sample locations in data: {sample_locations}")
+            logger.debug(f"Location filter '{location}': {len(leads)} -> {len(filtered)} leads")
         
         # Filter by region (API "region" field contains geographical regions)
-        # CASE INSENSITIVE search
-        region = filters.get('region', '').lower().strip()
+        region = filters.get('region', '').lower()
         if region:
-            before_count = len(filtered)
             filtered = [
                 lead for lead in filtered 
                 if region in lead.get('region', '').lower()
             ]
-            logger.debug(f"Region filter '{region}': {before_count} -> {len(filtered)} leads")
-            
-            # DEBUG: Show sample of what was filtered
-            if len(filtered) == 0 and before_count > 0:
-                sample_regions = list(set(lead.get('region', 'N/A') for lead in leads[:10]))
-                logger.warning(f"Region filter '{region}' found 0 results. Sample regions in data: {sample_regions}")
+            logger.debug(f"Region filter '{region}': {len(leads)} -> {len(filtered)} leads")
         
         # Filter by seniority level (only if not already filtered by API)
         if not filters.get('seniority_level'):

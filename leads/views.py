@@ -3,11 +3,11 @@ import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
 import csv
-
+from typing import Dict, Any
 
 from .forms import LeadSearchForm, CreateListForm, AddToListForm
 from .models import Lead, LeadList, LeadListItem
@@ -17,7 +17,7 @@ from .services.lead_service import LeadService
 logger = logging.getLogger(__name__)
 
 
-def search_leads(request):
+def search_leads(request: HttpRequest) -> HttpResponse:
     """
     Main search view - displays filters and results.
     Apollo-style interface with sidebar filters and results table.
@@ -64,18 +64,6 @@ def search_leads(request):
                 except Exception as e:
                     logger.error(f"Error parsing lead: {str(e)}")
             
-            # Apply local filters if needed
-            if filters.get('name') or filters.get('seniority_level') or filters.get('company_size'):
-                raw_leads_filtered = api_service.filter_leads_locally(raw_leads, filters)
-                # Re-parse filtered leads
-                parsed_leads = []
-                for raw_lead in raw_leads_filtered:
-                    try:
-                        parsed_lead = api_service.parse_lead_data(raw_lead)
-                        parsed_leads.append(parsed_lead)
-                    except Exception as e:
-                        logger.error(f"Error parsing filtered lead: {str(e)}")
-            
             context['total_results'] = len(parsed_leads)
             
             # Pagination
@@ -105,7 +93,7 @@ def search_leads(request):
 
 
 @require_http_methods(["POST"])
-def add_to_list(request):
+def add_to_list(request: HttpRequest) -> HttpResponse:
     """
     Add a lead to a list.
     Can be called via form submission.
@@ -160,7 +148,7 @@ def add_to_list(request):
     return redirect(request.META.get('HTTP_REFERER', 'leads:search'))
 
 
-def view_lists(request):
+def view_lists(request: HttpRequest) -> HttpResponse:
     """View all lists with their leads."""
     lists = LeadList.objects.all().order_by('-created_at')
     
@@ -173,7 +161,7 @@ def view_lists(request):
 
 
 @require_http_methods(["POST"])
-def create_list(request):
+def create_list(request: HttpRequest) -> HttpResponse:
     """
     Create a new list.
     """
@@ -196,7 +184,7 @@ def create_list(request):
 
 
 @require_http_methods(["POST"])
-def delete_list(request, list_id):
+def delete_list(request: HttpRequest, list_id: int) -> HttpResponse:
     """
     Delete a list.
     """
@@ -213,7 +201,7 @@ def delete_list(request, list_id):
 
 
 @require_http_methods(["POST"])
-def remove_from_list(request, list_id, lead_id):
+def remove_from_list(request: HttpRequest, list_id: int, lead_id: int) -> HttpResponse:
     """
     Remove a lead from a list.
     """
@@ -230,7 +218,7 @@ def remove_from_list(request, list_id, lead_id):
     return redirect('leads:view_lists')
 
 
-def export_list_csv(request, list_id):
+def export_list_csv(request: HttpRequest, list_id: int) -> HttpResponse:
     """
     Export a list to CSV file.
     """
@@ -262,12 +250,7 @@ def export_list_csv(request, list_id):
     # Write data
     for lead in leads:
         # Get seniority display name
-        seniority_display = ''
-        if lead.seniority_level:
-            for code, display in Lead.SENIORITY_CHOICES:
-                if code == lead.seniority_level:
-                    seniority_display = display
-                    break
+        seniority_display = lead.get_seniority_display()
         
         writer.writerow([
             lead.first_name,
@@ -276,7 +259,7 @@ def export_list_csv(request, list_id):
             lead.phone or '',
             lead.current_title,
             lead.current_company,
-            lead.linkedin_url,
+            lead.get_linkedin_url_normalized(),
             lead.location,
             lead.country,
             lead.industry,
@@ -288,7 +271,7 @@ def export_list_csv(request, list_id):
     return response
 
 
-def lead_detail(request, lead_id):
+def lead_detail(request: HttpRequest, lead_id: int) -> HttpResponse:
     """
     View detailed information about a lead.
     """
@@ -307,7 +290,7 @@ def lead_detail(request, lead_id):
 
 
 @require_http_methods(["POST"])
-def bulk_add_to_list(request):
+def bulk_add_to_list(request: HttpRequest) -> HttpResponse:
     """
     Add multiple leads to a list at once.
     """
