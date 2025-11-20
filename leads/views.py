@@ -24,7 +24,6 @@ def search_leads(request: HttpRequest) -> HttpResponse:
     """
     form = LeadSearchForm(request.GET or None)
     api_service = LinkedInAPIService()
-    
     # Initialize context
     context = {
         'form': form,
@@ -35,15 +34,17 @@ def search_leads(request: HttpRequest) -> HttpResponse:
         'error': None,
         'all_lists': LeadList.objects.all().order_by('name'),
     }
-    
+
     # If form is submitted and valid
     if request.GET and form.is_valid():
+        logger.info(f"Search request params: {request.GET}")
         context['has_searched'] = True
         filters = form.get_filters_dict()
-        
+        logger.info(f"Active filters: {filters}")
+
         # Fetch leads from API
         api_response = api_service.fetch_leads(filters)
-        
+
         if api_response['success']:
             # Show warning if using mock data
             if api_response.get('is_mock'):
@@ -52,9 +53,9 @@ def search_leads(request: HttpRequest) -> HttpResponse:
                     'Demo Mode: Using sample data because LinkedIn API is currently unavailable. '
                     'All results are for testing purposes only.'
                 )
-            
+
             raw_leads = api_response['results']
-            
+
             # Parse leads
             parsed_leads = []
             for raw_lead in raw_leads:
@@ -63,32 +64,34 @@ def search_leads(request: HttpRequest) -> HttpResponse:
                     parsed_leads.append(parsed_lead)
                 except Exception as e:
                     logger.error(f"Error parsing lead: {str(e)}")
-            
+
             context['total_results'] = len(parsed_leads)
-            
+
             # Pagination
             page = request.GET.get('page', 1)
             per_page = 10
-            
+
             paginator = Paginator(parsed_leads, per_page)
-            
+
             try:
                 page_obj = paginator.get_page(page)
             except PageNotAnInteger:
                 page_obj = paginator.get_page(1)
             except EmptyPage:
                 page_obj = paginator.get_page(paginator.num_pages)
-            
+
             context['page_obj'] = page_obj
             context['leads'] = page_obj.object_list
-            
+
             # Add message if no results
             if context['total_results'] == 0:
-                messages.info(request, 'No leads found with the given filters. Try adjusting your search.')
+                messages.info(
+                    request, 'No leads found with the given filters. Try adjusting your search.')
         else:
             context['error'] = api_response['error']
-            messages.error(request, f"Error fetching leads: {api_response['error']}")
-    
+            messages.error(
+                request, f"Error fetching leads: {api_response['error']}")
+
     return render(request, 'leads/search.html', context)
 
 
@@ -101,11 +104,11 @@ def add_to_list(request: HttpRequest) -> HttpResponse:
     # Get lead data from POST
     external_id = request.POST.get('external_id')
     list_name = request.POST.get('list_name')
-    
+
     if not external_id or not list_name:
         messages.error(request, 'Missing required information.')
         return redirect('leads:search')
-    
+
     # Get all lead data from POST
     lead_data = {
         'external_id': external_id,
@@ -127,23 +130,23 @@ def add_to_list(request: HttpRequest) -> HttpResponse:
         'skills': request.POST.get('skills', ''),
         'bio': request.POST.get('bio', ''),
     }
-    
+
     try:
         # Create or update lead
         lead = LeadService.create_or_update_lead(lead_data)
-        
+
         # Add to list
         success, message = LeadService.add_lead_to_list(lead, list_name)
-        
+
         if success:
             messages.success(request, message)
         else:
             messages.warning(request, message)
-            
+
     except Exception as e:
         logger.error(f"Error adding lead to list: {str(e)}")
         messages.error(request, f"Error: {str(e)}")
-    
+
     # Redirect back to search with filters preserved
     return redirect(request.META.get('HTTP_REFERER', 'leads:search'))
 
@@ -151,12 +154,12 @@ def add_to_list(request: HttpRequest) -> HttpResponse:
 def view_lists(request: HttpRequest) -> HttpResponse:
     """View all lists with their leads."""
     lists = LeadList.objects.all().order_by('-created_at')
-    
+
     context = {
         'lists': lists,
         'total_lists': lists.count(),
     }
-    
+
     return render(request, 'leads/lists.html', context)
 
 
@@ -166,20 +169,21 @@ def create_list(request: HttpRequest) -> HttpResponse:
     Create a new list.
     """
     form = CreateListForm(request.POST)
-    
+
     if form.is_valid():
         name = form.cleaned_data['name']
         description = form.cleaned_data['description']
-        
-        success, message, lead_list = LeadService.create_list(name, description)
-        
+
+        success, message, lead_list = LeadService.create_list(
+            name, description)
+
         if success:
             messages.success(request, message)
         else:
             messages.error(request, message)
     else:
         messages.error(request, 'Invalid form data.')
-    
+
     return redirect('leads:view_lists')
 
 
@@ -189,14 +193,14 @@ def delete_list(request: HttpRequest, list_id: int) -> HttpResponse:
     Delete a list.
     """
     lead_list = get_object_or_404(LeadList, id=list_id)
-    
+
     success, message = LeadService.delete_list(lead_list)
-    
+
     if success:
         messages.success(request, message)
     else:
         messages.error(request, message)
-    
+
     return redirect('leads:view_lists')
 
 
@@ -207,14 +211,14 @@ def remove_from_list(request: HttpRequest, list_id: int, lead_id: int) -> HttpRe
     """
     lead_list = get_object_or_404(LeadList, id=list_id)
     lead = get_object_or_404(Lead, id=lead_id)
-    
+
     success, message = LeadService.remove_lead_from_list(lead, lead_list)
-    
+
     if success:
         messages.success(request, message)
     else:
         messages.error(request, message)
-    
+
     return redirect('leads:view_lists')
 
 
@@ -224,13 +228,13 @@ def export_list_csv(request: HttpRequest, list_id: int) -> HttpResponse:
     """
     lead_list = get_object_or_404(LeadList, id=list_id)
     leads = LeadService.get_leads_in_list(lead_list)
-    
+
     # Create CSV response
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{lead_list.slug}_export.csv"'
-    
+
     writer = csv.writer(response)
-    
+
     # Write header
     writer.writerow([
         'First Name',
@@ -246,12 +250,12 @@ def export_list_csv(request: HttpRequest, list_id: int) -> HttpResponse:
         'Seniority Level',
         'Company Size',
     ])
-    
+
     # Write data
     for lead in leads:
         # Get seniority display name
         seniority_display = lead.get_seniority_display()
-        
+
         writer.writerow([
             lead.first_name,
             lead.last_name,
@@ -266,8 +270,9 @@ def export_list_csv(request: HttpRequest, list_id: int) -> HttpResponse:
             seniority_display,
             lead.company_size,
         ])
-    
-    messages.success(request, f'List "{lead_list.name}" exported successfully.')
+
+    messages.success(
+        request, f'List "{lead_list.name}" exported successfully.')
     return response
 
 
@@ -276,16 +281,16 @@ def lead_detail(request: HttpRequest, lead_id: int) -> HttpResponse:
     View detailed information about a lead.
     """
     lead = get_object_or_404(Lead, id=lead_id)
-    
+
     # Get all lists this lead is in
     lists = LeadList.objects.filter(list_items__lead=lead)
-    
+
     context = {
         'lead': lead,
         'lists': lists,
         'skills_list': lead.get_skills_list(),
     }
-    
+
     return render(request, 'leads/lead_detail.html', context)
 
 
@@ -297,15 +302,15 @@ def bulk_add_to_list(request: HttpRequest) -> HttpResponse:
     # Get lead IDs from POST (comma-separated)
     lead_ids = request.POST.get('lead_ids', '').split(',')
     list_name = request.POST.get('list_name')
-    
+
     if not lead_ids or not list_name:
         messages.error(request, 'Missing required information.')
         return redirect('leads:search')
-    
+
     # Get all lead data from POST (JSON format)
     import json
     leads_data = json.loads(request.POST.get('leads_data', '[]'))
-    
+
     created_leads = []
     for lead_data in leads_data:
         try:
@@ -313,14 +318,14 @@ def bulk_add_to_list(request: HttpRequest) -> HttpResponse:
             created_leads.append(lead)
         except Exception as e:
             logger.error(f"Error creating lead: {str(e)}")
-    
+
     # Bulk add to list
     result = LeadService.bulk_add_leads_to_list(created_leads, list_name)
-    
+
     messages.success(
         request,
         f"Added {result['added']} leads to '{list_name}'. "
         f"Skipped {result['skipped']} duplicates."
     )
-    
+
     return redirect('leads:search')

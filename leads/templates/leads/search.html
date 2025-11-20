@@ -1,100 +1,93 @@
-{% extends 'leads/base.html' %}
+{% extends "leads/base.html" %}
 {% load static %}
 
-{% block title %}Search Leads - Lead Finder{% endblock %}
+{% block title %}Search Leads{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
+<div class="container-fluid py-4">
     <div class="row">
-        <!-- Sidebar with Filters -->
+        <!-- Sidebar Filters -->
         <div class="col-md-3">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-filter"></i> Search Filters</h5>
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-filter"></i> Filters</h5>
                 </div>
                 <div class="card-body">
-                    <form method="GET" action="{% url 'leads:search' %}" id="searchForm">
-                        
+                    <form method="GET" action="{% url 'leads:search' %}">
                         <!-- Name Filter -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Name</label>
                             {{ form.name }}
-                            <small class="text-muted d-block mt-1">Search by first or last name</small>
+                            <small class="text-muted d-block mt-1">
+                                e.g., John Smith
+                            </small>
                         </div>
-                        
+
                         <!-- Job Title Filter -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Job Title</label>
                             {{ form.title }}
-                            <small class="text-muted d-block mt-1">e.g., Director, Engineer</small>
+                            <small class="text-muted d-block mt-1">
+                                e.g., CEO, Software Engineer
+                            </small>
                         </div>
-                        
+
                         <!-- Company Filter -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Company</label>
                             {{ form.company }}
-                            <small class="text-muted d-block mt-1">Search by company name</small>
-                        </div>
-                        
-                        <!-- Country/Location Filter -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Country/Location</label>
-                            {{ form.location }}
                             <small class="text-muted d-block mt-1">
-                                Try: Spain, Italy, France, Belgium
+                                e.g., Google, Microsoft
                             </small>
                         </div>
-                        
+
+                        <!-- Location Filter -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Location</label>
+                            {{ form.location }}
+                            <small class="text-muted d-block mt-1">
+                                e.g., United States, London
+                            </small>
+                        </div>
+
                         <!-- Region Filter -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Geographical Region</label>
                             {{ form.region }}
-                            <small class="text-muted d-block mt-1">
-                                Try: Europe, Southern Europe, Western Europe
-                            </small>
                         </div>
-                        
+
                         <!-- Industry Filter -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Industry</label>
                             {{ form.industry }}
-                            <small class="text-muted d-block mt-1">
-                                e.g., Technology, Construction
-                            </small>
                         </div>
-                        
+
                         <!-- Seniority Level Filter -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Seniority Level</label>
                             {{ form.seniority_level }}
                         </div>
-                        
+
                         <!-- Company Size Filter -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Company Size</label>
                             {{ form.company_size }}
                         </div>
-                        
+
                         <!-- Keywords Filter -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Keywords</label>
                             {{ form.keywords }}
-                            <small class="text-muted d-block mt-1">
-                                Search in skills, headline, or bio
-                            </small>
                         </div>
-                        
+
                         <!-- Number of Results Selector -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-list-ol"></i> Results Limit
                             </label>
                             {{ form.limit }}
-                            <small class="text-muted d-block mt-1">
-                                More results = slower search
-                            </small>
                         </div>
-                        
+
                         <!-- Action Buttons -->
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">
@@ -108,7 +101,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Results Area -->
         <div class="col-md-9">
             {% if error %}
@@ -117,163 +110,169 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
             {% endif %}
-            
+
             {% if has_searched %}
-                <!-- Stats Card (FIXED - Subtle colors) -->
-                <div class="card shadow-sm mb-3">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <h3 class="mb-0 text-primary">
-                                    <i class="fas fa-users"></i> {{ total_results }}
-                                </h3>
-                                <small class="text-muted">Lead(s) found</small>
-                            </div>
-                            <div class="col-md-6 text-end">
-                                {% if page_obj %}
-                                <span class="badge bg-secondary bg-opacity-25 text-dark border">
-                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                                </span>
-                                {% endif %}
-                            </div>
+            <!-- Stats Card -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h3 class="mb-0 text-primary">
+                                <i class="fas fa-users"></i> {{ total_results }}
+                            </h3>
+                            <small class="text-muted">Lead(s) found</small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            {% if page_obj %}
+                            <span class="badge bg-secondary bg-opacity-25 text-dark border">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
-                
-                {% if leads %}
-                <!-- Results Table -->
-                <div class="card shadow-sm">
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Title</th>
-                                        <th>Company</th>
-                                        <th>Location</th>
-                                        <th>Industry</th>
-                                        <th>LinkedIn</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for lead in leads %}
-                                    <tr>
-                                        <td>
-                                            <div class="fw-bold">{{ lead.full_name|default:"N/A" }}</div>
-                                            {% if lead.seniority_level %}
-                                            <span class="badge bg-info text-dark">{{ lead.seniority_level|title }}</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {{ lead.current_title|default:"-" }}
-                                            {% if lead.headline %}
-                                            <br><small class="text-muted">{{ lead.headline|truncatewords:8 }}</small>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div>{{ lead.current_company|default:"-" }}</div>
-                                            {% if lead.company_size %}
-                                            <small class="text-muted">{{ lead.company_size }}</small>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {{ lead.location|default:"-" }}
-                                            {% if lead.country and lead.country != lead.location %}
-                                            <br><small class="text-muted">{{ lead.country }}</small>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ lead.industry|default:"-" }}</td>
-                                        <td>
-                                            {% if lead.linkedin_url %}
-                                            <a href="{% if 'http' in lead.linkedin_url %}{{ lead.linkedin_url }}{% else %}https://{{ lead.linkedin_url }}{% endif %}" 
-                                               target="_blank" 
-                                               class="btn btn-sm btn-outline-primary"
-                                               rel="noopener noreferrer">
-                                                <i class="fab fa-linkedin"></i>
-                                            </a>
-                                            {% else %}
-                                            <span class="text-muted">-</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <button type="button"
-                                                    class="btn btn-sm btn-success add-to-list-btn" 
-                                                    data-external-id="{{ lead.external_id|default:'' }}"
-                                                    data-first-name="{{ lead.first_name|escapejs }}"
-                                                    data-last-name="{{ lead.last_name|escapejs }}"
-                                                    data-full-name="{{ lead.full_name|escapejs }}"
-                                                    data-email="{{ lead.email|default:''|escapejs }}"
-                                                    data-phone="{{ lead.phone|default:''|escapejs }}"
-                                                    data-linkedin-url="{{ lead.linkedin_url|escapejs }}"
-                                                    data-current-title="{{ lead.current_title|escapejs }}"
-                                                    data-current-company="{{ lead.current_company|escapejs }}"
-                                                    data-company-linkedin-url="{{ lead.company_linkedin_url|default:''|escapejs }}"
-                                                    data-headline="{{ lead.headline|escapejs }}"
-                                                    data-location="{{ lead.location|escapejs }}"
-                                                    data-country="{{ lead.country|escapejs }}"
-                                                    data-region="{{ lead.region|default:''|escapejs }}"
-                                                    data-industry="{{ lead.industry|escapejs }}"
-                                                    data-company-size="{{ lead.company_size|escapejs }}"
-                                                    data-company-domain="{{ lead.company_domain|default:''|escapejs }}"
-                                                    data-company-location="{{ lead.company_location|default:''|escapejs }}"
-                                                    data-company-founded="{{ lead.company_founded|default:''|escapejs }}"
-                                                    data-company-revenue="{{ lead.company_revenue|default:''|escapejs }}"
-                                                    data-company-subindustry="{{ lead.company_subindustry|default:''|escapejs }}"
-                                                    data-level="{{ lead.level|default:''|escapejs }}"
-                                                    data-department="{{ lead.department|default:''|escapejs }}"
-                                                    data-seniority-level="{{ lead.seniority_level|escapejs }}"
-                                                    data-skills="{{ lead.skills|escapejs }}"
-                                                    data-bio="{{ lead.bio|escapejs }}">
-                                                <i class="fas fa-plus"></i> Add to List
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+            </div>
+
+            {% if leads %}
+            <!-- Results Table -->
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Title</th>
+                                    <th>Company</th>
+                                    <th>Location</th>
+                                    <th>Industry</th>
+                                    <th>Email</th>
+                                    <th>LinkedIn</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lead in leads %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ lead.full_name|default:"N/A" }}</div>
+                                        {% if lead.seniority_level %}
+                                        <span class="badge bg-info text-dark">{{ lead.seniority_level|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ lead.current_title|default:"-" }}
+                                        {% if lead.headline %}
+                                        <br><small class="text-muted">{{ lead.headline|truncatewords:8 }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div>{{ lead.current_company|default:"-" }}</div>
+                                        {% if lead.company_size %}
+                                        <small class="text-muted">{{ lead.company_size }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ lead.location|default:"-" }}
+                                        {% if lead.country and lead.country != lead.location %}
+                                        <br><small class="text-muted">{{ lead.country }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ lead.industry|default:"-" }}</td>
+                                    <td>
+                                        {% if lead.email %}
+                                        <a href="mailto:{{ lead.email }}" class="btn btn-sm btn-outline-danger"
+                                            title="{{ lead.email }}">
+                                            <i class="fas fa-envelope"></i>
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if lead.linkedin_url %}
+                                        <a href="{% if 'http' in lead.linkedin_url %}{{ lead.linkedin_url }}{% else %}https://{{ lead.linkedin_url }}{% endif %}"
+                                            target="_blank" class="btn btn-sm btn-outline-primary"
+                                            rel="noopener noreferrer">
+                                            <i class="fab fa-linkedin"></i>
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-success add-to-list-btn"
+                                            data-external-id="{{ lead.external_id|default:'' }}"
+                                            data-first-name="{{ lead.first_name|escapejs }}"
+                                            data-last-name="{{ lead.last_name|escapejs }}"
+                                            data-full-name="{{ lead.full_name|escapejs }}"
+                                            data-email="{{ lead.email|default:''|escapejs }}"
+                                            data-phone="{{ lead.phone|default:''|escapejs }}"
+                                            data-linkedin-url="{{ lead.linkedin_url|escapejs }}"
+                                            data-current-title="{{ lead.current_title|escapejs }}"
+                                            data-current-company="{{ lead.current_company|escapejs }}"
+                                            data-company-linkedin-url="{{ lead.company_linkedin_url|default:''|escapejs }}"
+                                            data-headline="{{ lead.headline|escapejs }}"
+                                            data-location="{{ lead.location|escapejs }}"
+                                            data-country="{{ lead.country|escapejs }}"
+                                            data-region="{{ lead.region|default:''|escapejs }}"
+                                            data-industry="{{ lead.industry|escapejs }}"
+                                            data-company-size="{{ lead.company_size|escapejs }}"
+                                            data-company-domain="{{ lead.company_domain|default:''|escapejs }}"
+                                            data-company-location="{{ lead.company_location|default:''|escapejs }}"
+                                            data-company-founded="{{ lead.company_founded|default:''|escapejs }}"
+                                            data-company-revenue="{{ lead.company_revenue|default:''|escapejs }}"
+                                            data-company-subindustry="{{ lead.company_subindustry|default:''|escapejs }}"
+                                            data-level="{{ lead.level|default:''|escapejs }}"
+                                            data-department="{{ lead.department|default:''|escapejs }}"
+                                            data-seniority-level="{{ lead.seniority_level|escapejs }}"
+                                            data-skills="{{ lead.skills|escapejs }}" data-bio="{{ lead.bio|escapejs }}">
+                                            <i class="fas fa-plus"></i> Add to List
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                
-                <!-- Pagination -->
-                {% if page_obj.paginator.num_pages > 1 %}
-                <nav aria-label="Search results pagination" class="mt-4">
-                    <ul class="pagination justify-content-center">
-                        {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
-                                <i class="fas fa-chevron-left"></i> Previous
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav aria-label="Search results pagination" class="mt-4 pb-5">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i>
+                            Previous</span>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li class="page-item">
+                        <a class="page-link"
+                            href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{
+                            num }}</a>
                         </li>
                         {% endif %}
-                        
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if num == page_obj.number %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ num }}</span>
-                            </li>
-                            {% elif num <= 3 or num > page_obj.paginator.num_pages|add:"-3" or num >= page_obj.number|add:"-1" and num <= page_obj.number|add:"1" %}
-                            <li class="page-item">
-                                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">
-                                    {{ num }}
-                                </a>
-                            </li>
-                            {% elif num == 4 or num == page_obj.paginator.num_pages|add:"-3" %}
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                            {% endif %}
                         {% endfor %}
-                        
+
                         {% if page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                            <a class="page-link"
+                                href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
                                 Next <i class="fas fa-chevron-right"></i>
                             </a>
                         </li>
@@ -282,31 +281,31 @@
                             <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
                         </li>
                         {% endif %}
-                    </ul>
-                </nav>
-                {% endif %}
-                
-                {% else %}
-                <!-- No Results -->
-                <div class="alert alert-info text-center">
-                    <i class="fas fa-info-circle fa-2x mb-3"></i>
-                    <h5>No leads found</h5>
-                    <p class="mb-0">Try adjusting your search filters to find more results.</p>
-                </div>
-                {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
             {% else %}
-                <!-- Initial Empty State -->
-                <div class="text-center py-5">
-                    <i class="fas fa-search fa-5x text-muted mb-4"></i>
-                    <h3 class="text-muted">Start Your Lead Search</h3>
-                    <p class="text-muted">Use the filters on the left to discover potential leads.</p>
-                </div>
+            <!-- No Results -->
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle fa-2x mb-3"></i>
+                <h5>No leads found</h5>
+                <p class="mb-0">Try adjusting your search filters to find more results.</p>
+            </div>
+            {% endif %}
+            {% else %}
+            <!-- Initial Empty State -->
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-5x text-muted mb-4"></i>
+                <h3 class="text-muted">Start Your Lead Search</h3>
+                <p class="text-muted">Use the filters on the left to discover potential leads.</p>
+            </div>
             {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Add to List Modal (unchanged) -->
+<!-- Add to List Modal -->
 <div class="modal fade" id="addToListModal" tabindex="-1" aria-labelledby="addToListModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -314,7 +313,8 @@
                 <h5 class="modal-title" id="addToListModalLabel">
                     <i class="fas fa-plus-circle"></i> Add Lead to List
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <form method="POST" action="{% url 'leads:add_to_list' %}" id="addToListForm">
                 {% csrf_token %}
@@ -323,7 +323,7 @@
                         <strong id="leadNameDisplay"></strong><br>
                         <small id="leadTitleDisplay" class="text-muted"></small>
                     </div>
-                    
+
                     <input type="hidden" name="external_id" id="modal_external_id">
                     <input type="hidden" name="first_name" id="modal_first_name">
                     <input type="hidden" name="last_name" id="modal_last_name">
@@ -350,7 +350,7 @@
                     <input type="hidden" name="seniority_level" id="modal_seniority_level">
                     <input type="hidden" name="skills" id="modal_skills">
                     <input type="hidden" name="bio" id="modal_bio">
-                    
+
                     <div class="mb-3">
                         <label for="listSelect" class="form-label fw-bold">
                             <i class="fas fa-list"></i> Select Existing List
@@ -362,27 +362,21 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="newListInput" class="form-label fw-bold">
                             <i class="fas fa-plus"></i> Or Create New List
                         </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="newListInput"
-                               placeholder="Enter new list name">
+                        <input type="text" class="form-control" id="newListInput" placeholder="Enter new list name">
                         <small class="form-text text-muted">Leave blank to use selected list above</small>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="notesTextarea" class="form-label fw-bold">
                             <i class="fas fa-sticky-note"></i> Notes (Optional)
                         </label>
-                        <textarea class="form-control" 
-                                  id="notesTextarea" 
-                                  name="notes" 
-                                  rows="3" 
-                                  placeholder="Add any notes about this lead..."></textarea>
+                        <textarea class="form-control" id="notesTextarea" name="notes" rows="3"
+                            placeholder="Add any notes about this lead..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -401,121 +395,111 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const addToListModal = new bootstrap.Modal(document.getElementById('addToListModal'));
-    const newListInput = document.getElementById('newListInput');
-    const listSelect = document.getElementById('listSelect');
-    
-    newListInput.addEventListener('input', function() {
-        if (this.value.trim()) {
-            listSelect.disabled = true;
-        } else {
-            listSelect.disabled = false;
-        }
-    });
-    
-    document.getElementById('addToListForm').addEventListener('submit', function(e) {
-        const newListValue = newListInput.value.trim();
-        const listSelectValue = listSelect.value;
-        
-        let listNameInput = document.getElementById('final_list_name');
-        if (!listNameInput) {
-            listNameInput = document.createElement('input');
-            listNameInput.type = 'hidden';
-            listNameInput.name = 'list_name';
-            listNameInput.id = 'final_list_name';
-            this.appendChild(listNameInput);
-        }
-        
-        if (newListValue) {
-            listNameInput.value = newListValue;
-        } else if (listSelectValue) {
-            listNameInput.value = listSelectValue;
-        } else {
-            e.preventDefault();
-            alert('Please select a list or create a new one.');
-            return false;
-        }
-    });
-    
-    document.querySelectorAll('.add-to-list-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const leadData = {
-                external_id: this.dataset.externalId || '',
-                first_name: this.dataset.firstName || '',
-                last_name: this.dataset.lastName || '',
-                full_name: this.dataset.fullName || '',
-                email: this.dataset.email || '',
-                phone: this.dataset.phone || '',
-                linkedin_url: this.dataset.linkedinUrl || '',
-                current_title: this.dataset.currentTitle || '',
-                current_company: this.dataset.currentCompany || '',
-                company_linkedin_url: this.dataset.companyLinkedinUrl || '',
-                headline: this.dataset.headline || '',
-                location: this.dataset.location || '',
-                country: this.dataset.country || '',
-                region: this.dataset.region || '',
-                industry: this.dataset.industry || '',
-                company_size: this.dataset.companySize || '',
-                company_domain: this.dataset.companyDomain || '',
-                company_location: this.dataset.companyLocation || '',
-                company_founded: this.dataset.companyFounded || '',
-                company_revenue: this.dataset.companyRevenue || '',
-                company_subindustry: this.dataset.companySubindustry || '',
-                level: this.dataset.level || '',
-                department: this.dataset.department || '',
-                seniority_level: this.dataset.seniorityLevel || '',
-                skills: this.dataset.skills || '',
-                bio: this.dataset.bio || ''
-            };
-            
-            populateModal(leadData);
-            addToListModal.show();
+    document.addEventListener('DOMContentLoaded', function () {
+        const addToListModal = new bootstrap.Modal(document.getElementById('addToListModal'));
+        const newListInput = document.getElementById('newListInput');
+        const listSelect = document.getElementById('listSelect');
+
+        newListInput.addEventListener('input', function () {
+            if (this.value.trim()) {
+                listSelect.disabled = true;
+            } else {
+                listSelect.disabled = false;
+            }
         });
-    });
-    
-    function populateModal(leadData) {
-        document.getElementById('leadNameDisplay').textContent = leadData.full_name || 'Unknown';
-        document.getElementById('leadTitleDisplay').textContent = 
-            `${leadData.current_title || 'N/A'} at ${leadData.current_company || 'N/A'}`;
-        
-        document.getElementById('modal_external_id').value = leadData.external_id;
-        document.getElementById('modal_first_name').value = leadData.first_name;
-        document.getElementById('modal_last_name').value = leadData.last_name;
-        document.getElementById('modal_full_name').value = leadData.full_name;
-        document.getElementById('modal_email').value = leadData.email;
-        document.getElementById('modal_phone').value = leadData.phone;
-        document.getElementById('modal_linkedin_url').value = leadData.linkedin_url;
-        document.getElementById('modal_current_title').value = leadData.current_title;
-        document.getElementById('modal_current_company').value = leadData.current_company;
-        document.getElementById('modal_company_linkedin_url').value = leadData.company_linkedin_url;
-        document.getElementById('modal_headline').value = leadData.headline;
-        document.getElementById('modal_location').value = leadData.location;
-        document.getElementById('modal_country').value = leadData.country;
-        document.getElementById('modal_region').value = leadData.region;
-        document.getElementById('modal_industry').value = leadData.industry;
-        document.getElementById('modal_company_size').value = leadData.company_size;
-        document.getElementById('modal_company_domain').value = leadData.company_domain;
-        document.getElementById('modal_company_location').value = leadData.company_location;
-        document.getElementById('modal_company_founded').value = leadData.company_founded;
-        document.getElementById('modal_company_revenue').value = leadData.company_revenue;
-        document.getElementById('modal_company_subindustry').value = leadData.company_subindustry;
-        document.getElementById('modal_level').value = leadData.level;
-        document.getElementById('modal_department').value = leadData.department;
-        document.getElementById('modal_seniority_level').value = leadData.seniority_level;
-        document.getElementById('modal_skills').value = leadData.skills;
-        document.getElementById('modal_bio').value = leadData.bio;
-        
-        listSelect.value = '';
-        newListInput.value = '';
-        document.getElementById('notesTextarea').value = '';
-        listSelect.disabled = false;
-        
-        const oldFinalInput = document.getElementById('final_list_name');
-        if (oldFinalInput) {
-            oldFinalInput.remove();
+
+        document.getElementById('addToListForm').addEventListener('submit', function (e) {
+            const newListValue = newListInput.value.trim();
+            const listSelectValue = listSelect.value;
+
+            let listNameInput = document.getElementById('final_list_name');
+            if (!listNameInput) {
+                listNameInput = document.createElement('input');
+                listNameInput.type = 'hidden';
+                listNameInput.name = 'list_name';
+                listNameInput.id = 'final_list_name';
+                this.appendChild(listNameInput);
+            }
+
+            if (newListValue) {
+                listNameInput.value = newListValue;
+            } else if (listSelectValue) {
+                listNameInput.value = listSelectValue;
+            } else {
+                e.preventDefault();
+                alert('Please select a list or create a new one.');
+                return false;
+            }
+        });
+
+        document.querySelectorAll('.add-to-list-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const leadData = {
+                    external_id: this.dataset.externalId || '',
+                    first_name: this.dataset.firstName || '',
+                    last_name: this.dataset.lastName || '',
+                    full_name: this.dataset.fullName || '',
+                    email: this.dataset.email || '',
+                    phone: this.dataset.phone || '',
+                    linkedin_url: this.dataset.linkedinUrl || '',
+                    current_title: this.dataset.currentTitle || '',
+                    current_company: this.dataset.currentCompany || '',
+                    company_linkedin_url: this.dataset.companyLinkedinUrl || '',
+                    headline: this.dataset.headline || '',
+                    location: this.dataset.location || '',
+                    country: this.dataset.country || '',
+                    region: this.dataset.region || '',
+                    industry: this.dataset.industry || '',
+                    company_size: this.dataset.companySize || '',
+                    company_domain: this.dataset.companyDomain || '',
+                    company_location: this.dataset.companyLocation || '',
+                    company_founded: this.dataset.companyFounded || '',
+                    company_revenue: this.dataset.companyRevenue || '',
+                    company_subindustry: this.dataset.companySubindustry || '',
+                    level: this.dataset.level || '',
+                    department: this.dataset.department || '',
+                    seniority_level: this.dataset.seniorityLevel || '',
+                    skills: this.dataset.skills || '',
+                    bio: this.dataset.bio || ''
+                };
+
+                populateModal(leadData);
+                addToListModal.show();
+            });
+        });
+
+        function populateModal(leadData) {
+            document.getElementById('leadNameDisplay').textContent = leadData.full_name || 'Unknown';
+            document.getElementById('leadTitleDisplay').textContent =
+                `${leadData.current_title || 'N/A'} at ${leadData.current_company || 'N/A'}`;
+
+            document.getElementById('modal_external_id').value = leadData.external_id;
+            document.getElementById('modal_first_name').value = leadData.first_name;
+            document.getElementById('modal_last_name').value = leadData.last_name;
+            document.getElementById('modal_full_name').value = leadData.full_name;
+            document.getElementById('modal_email').value = leadData.email;
+            document.getElementById('modal_phone').value = leadData.phone;
+            document.getElementById('modal_linkedin_url').value = leadData.linkedin_url;
+            document.getElementById('modal_current_title').value = leadData.current_title;
+            document.getElementById('modal_current_company').value = leadData.current_company;
+            document.getElementById('modal_company_linkedin_url').value = leadData.company_linkedin_url;
+            document.getElementById('modal_headline').value = leadData.headline;
+            document.getElementById('modal_location').value = leadData.location;
+            document.getElementById('modal_country').value = leadData.country;
+            document.getElementById('modal_region').value = leadData.region;
+            document.getElementById('modal_industry').value = leadData.industry;
+            document.getElementById('modal_company_size').value = leadData.company_size;
+            document.getElementById('modal_company_domain').value = leadData.company_domain;
+            document.getElementById('modal_company_location').value = leadData.company_location;
+            document.getElementById('modal_company_founded').value = leadData.company_founded;
+            document.getElementById('modal_company_revenue').value = leadData.company_revenue;
+            document.getElementById('modal_company_subindustry').value = leadData.company_subindustry;
+            document.getElementById('modal_level').value = leadData.level;
+            document.getElementById('modal_department').value = leadData.department;
+            document.getElementById('modal_seniority_level').value = leadData.seniority_level;
+            document.getElementById('modal_skills').value = leadData.skills;
+            document.getElementById('modal_bio').value = leadData.bio;
         }
-    }
-});
+    });
 </script>
 {% endblock %}
