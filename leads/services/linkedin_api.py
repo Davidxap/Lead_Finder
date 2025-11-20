@@ -211,18 +211,18 @@ class LinkedInAPIService:
             # PRIORITY 3: Seniority Level
             if filters.get('seniority_level'):
                 seniority_map = {
-                    'entry': 'Entry Level',
-                    'mid': 'Mid Level',
+                    'entry': 'Entry level',
+                    'mid': 'Mid-Senior level',
                     'senior': 'Senior',
                     'specialist': 'Specialist',
                     'manager': 'Manager',
                     'director': 'Director',
                     'head': 'Head',
                     'vp': 'VP',
-                    'c_level': 'C-Level',
+                    'c_level': 'Executive',
                     'owner': 'Owner',
                     'partner': 'Partner',
-                    'intern': 'Intern',
+                    'intern': 'Internship',
                 }
                 mapped_level = seniority_map.get(
                     filters['seniority_level'],
@@ -325,11 +325,13 @@ class LinkedInAPIService:
             'entry level': 'entry',
             'junior': 'entry',
             'intern': 'intern',
+            'internship': 'intern',
 
             # Mid levels
             'mid': 'mid',
             'mid level': 'mid',
             'intermediate': 'mid',
+            'mid-senior level': 'mid',
 
             # Senior levels
             'senior': 'senior',
@@ -356,6 +358,7 @@ class LinkedInAPIService:
             'c-level': 'c_level',
             'c level': 'c_level',
             'executive': 'c_level',
+            'exec': 'c_level',
             'ceo': 'c_level',
             'cto': 'c_level',
             'cfo': 'c_level',

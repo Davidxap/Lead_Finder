@@ -160,7 +160,7 @@ def view_lists(request: HttpRequest) -> HttpResponse:
         'total_lists': lists.count(),
     }
 
-    return render(request, 'leads/lists.html', context)
+    return render(request, 'leads/my_lists.html', context)
 
 
 @require_http_methods(["POST"])
