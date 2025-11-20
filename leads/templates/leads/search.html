@@ -272,8 +272,7 @@
                                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li
                                     class="page-item">
                                     <a class="page-link"
-                                        href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{
-                                        num }}</a>
+                                        href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
                                     </li>
                                     {% endif %}
                                     {% endfor %}
@@ -369,6 +368,18 @@
                                 <input type="hidden" name="seniority_level" id="modal_seniority_level">
                                 <input type="hidden" name="skills" id="modal_skills">
                                 <input type="hidden" name="bio" id="modal_bio">
+
+                                <div class="mb-3">
+                                    <label for="listSelect" class="form-label fw-bold">
+                                        <i class="fas fa-list"></i> Select Existing List
+                                    </label>
+                                    <select class="form-select" id="listSelect" name="list_id">
+                                        <option value="">-- Choose a list --</option>
+                                        {% for list in all_lists %}
+                                        <option value="{{ list.name }}">{{ list.name }} ({{ list.get_lead_count }} leads)</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
 
                                 <label for="newListInput" class="form-label fw-bold">
                                     <i class="fas fa-plus"></i> Or Create New List
