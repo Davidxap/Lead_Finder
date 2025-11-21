@@ -269,7 +269,8 @@
                                 {% for num in page_obj.paginator.page_range %}
                                 {% if page_obj.number == num %}
                                 <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li
                                     class="page-item">
                                     <a class="page-link"
                                         href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
@@ -387,7 +388,6 @@
                                 <input type="text" class="form-control" id="newListInput"
                                     placeholder="Enter new list name">
                                 <small class="form-text text-muted">Leave blank to use selected list above</small>
-                            </div>
 
                             <div class="mb-3">
                                 <label for="notesTextarea" class="form-label fw-bold">

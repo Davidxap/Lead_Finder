@@ -136,9 +136,8 @@
                                     </td>
                                     <td>
                                         {% if lead.linkedin_url %}
-                                        <a href="{% if 'http' in lead.linkedin_url %}{{ lead.linkedin_url }}{% else %}https://{{ lead.linkedin_url }}{% endif %}"
-                                            target="_blank" class="btn btn-sm btn-outline-primary"
-                                            title="View LinkedIn Profile">
+                                        <a href="{{ lead.get_linkedin_url_normalized }}" target="_blank"
+                                            class="btn btn-sm btn-outline-primary" title="View LinkedIn Profile">
                                             <i class="fab fa-linkedin"></i> Profile
                                         </a>
                                         {% else %}
